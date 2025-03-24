@@ -1,8 +1,10 @@
 <?php
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use App\Traits\ApiResponser;
 use App\Models\User;
+use App\Models\UserJob;
 
 class User2Controller extends Controller {
     use ApiResponser;
@@ -17,15 +19,24 @@ class User2Controller extends Controller {
         return response()->json(['data' => $users]);
     }        
 
-    public function add(Request $request) {
+    public function add(Request $request)
+    {
         $rules = [
             'username' => 'required|max:20',
             'password' => 'required|max:20',
             'gender' => 'required|in:Male,Female',
+            'jobid' => 'required|numeric|min:1|not_in:0',
         ];
+
         $this->validate($request, $rules);
+
+        // Validate if jobid exists in tbluserjob
+        $userjob = UserJob::findOrFail($request->jobid);
+
+        // Create user
         $user = User::create($request->all());
-        return response()->json(['data' => $user]);
+
+        return $this->successResponse($user, Response::HTTP_CREATED);
     }
 
     public function show($id)
@@ -39,23 +50,32 @@ class User2Controller extends Controller {
         return $this->successResponse($user, 200);
     }
 
-    public function update(Request $request, $id) {
-        $rules = [
-            'username' => 'max:20',
-            'password' => 'max:20',
-            'gender' => 'in:Male,Female',
-        ];
-        $this->validate($request, $rules);
-        $user = User::findOrFail($id);
-        $user->fill($request->all());
+    public function update(Request $request, $id)
+{
+    $rules = [
+        'username' => 'max:20',
+        'password' => 'max:20',
+        'gender' => 'in:Male,Female',
+        'jobid' => 'required|numeric|min:1|not_in:0',
+    ];
 
-        if ($user->isClean()) {
-            return response()->json(['error' => 'At least one value must change'], 422);
-        }
+    $this->validate($request, $rules);
 
-        $user->save();
-        return response()->json(['data' => $user]);
+    // Validate if jobid exists in tbluserjob
+    $userjob = UserJob::findOrFail($request->jobid);
+
+    $user = User::findOrFail($id);
+    $user->fill($request->all());
+
+    // If no changes happen, return error
+    if ($user->isClean()) {
+        return $this->errorResponse('At least one value must change', Response::HTTP_UNPROCESSABLE_ENTITY);
     }
+
+    $user->save();
+
+    return $this->successResponse($user);
+}      
 
     public function delete($id) {
         $user = User::findOrFail($id);
