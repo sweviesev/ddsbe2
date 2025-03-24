@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use App\Traits\ApiResponser;
 use App\Models\User;
 
-class UserController2 extends Controller {
+class User2Controller extends Controller {
     use ApiResponser;
     private $request;
 
